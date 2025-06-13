@@ -7,7 +7,7 @@ import { AuthModal } from "@/components/AuthModal";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 
 const Index = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode like Daleel
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);

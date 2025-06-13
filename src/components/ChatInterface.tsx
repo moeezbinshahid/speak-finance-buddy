@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Send, Banknote, Globe } from 'lucide-react';
+import { Mic, MicOff, Send, Banknote, Globe, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -75,6 +74,91 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // If no messages and user is not authenticated, show Daleel-style landing
+  if (!isAuthenticated && messages.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+        {/* Centered Logo */}
+        <div className="mb-12 text-center">
+          <h1 className={`text-5xl md:text-6xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+            FinanceAI
+            <span className="text-blue-500">.</span>
+          </h1>
+        </div>
+
+        {/* Main Search Interface */}
+        <div className="w-full max-w-2xl mb-8">
+          <div className={`relative rounded-full p-2 ${isDarkMode ? 'bg-gray-800/80' : 'bg-white/80'} backdrop-blur-sm border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} shadow-lg`}>
+            <div className="flex items-center gap-3 px-4">
+              <Search className={`h-5 w-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Ask about your finances, log expenses, or transfer money..."
+                className={`flex-1 border-0 bg-transparent text-lg placeholder:text-base focus-visible:ring-0 ${
+                  isDarkMode ? 'text-white placeholder:text-gray-400' : 'text-gray-900 placeholder:text-gray-500'
+                }`}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    // For demo, just show auth modal
+                    // In real app, this would trigger authentication flow
+                  }
+                }}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsListening(!isListening)}
+                className={`rounded-full p-2 ${
+                  isListening 
+                    ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-950' 
+                    : isDarkMode 
+                      ? 'text-gray-400 hover:bg-gray-700' 
+                      : 'text-gray-500 hover:bg-gray-100'
+                }`}
+              >
+                {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Subtitle */}
+        <p className={`text-center text-lg mb-12 max-w-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          Your intelligent financial assistant supporting multiple languages and voice commands.
+        </p>
+
+        {/* Language Selection */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
+          {supportedLanguages.slice(0, 5).map((lang) => (
+            <Button
+              key={lang.code}
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedLanguage(lang.code)}
+              className={`${
+                selectedLanguage === lang.code
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : isDarkMode
+                    ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <span className="mr-2">{lang.flag}</span>
+              {lang.name}
+            </Button>
+          ))}
+        </div>
+
+        {/* CTA */}
+        <p className={`text-sm text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          Sign in to start managing your finances with AI
+        </p>
+      </div>
+    );
+  }
+
   // Add welcome message for authenticated users
   useEffect(() => {
     if (isAuthenticated && messages.length === 0) {
@@ -143,8 +227,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
     // Language-specific responses
     const responses: Record<string, string> = {
       en: `I understand you said: "${input}"\n\nI'm processing your request using advanced AI to help with your financial needs. Here are some things I can help you with:\n\n• Record transactions\n• Check balances\n• Generate reports\n• Transfer money\n• Analyze spending patterns\n\nWhat would you like to do next?`,
-      ur: `میں سمجھ گیا کہ آپ نے کہا: "${input}"\n\nمیں آپ کی مالی ضروریات کے لیے ایڈوانس AI استعمال کر کے آپ کی درخواست پر کام کر رہا ہوں۔ میں آپ کی مدد کر سکتا ہوں:\n\n• لین دین ریکارڈ کرنا\n• بیلنس چیک کرنا\n• رپورٹس بنانا\n• رقم ٹرانسفر کرنا\n• خرچ کا تجزیہ\n\nآپ آگے کیا کرنا چاہیں گے؟`,
-      hi: `मैं समझ गया कि आपने कहा: "${input}"\n\nमैं आपकी वित्तीय जरूरतों के लिए उन्नत AI का उपयोग करके आपके अनुरोध को संसाधित कर रहा हूं। मैं आपकी मदद कर सकता हूं:\n\n• लेन-देन रिकॉर्ड करना\n• बैलेंस चेक करना\n• रिपोर्ट बनाना\n• पैसे ट्रांसफर करना\n• खर्च का विश्लेषण\n\nआप आगे क्या करना चाहेंगे?`,
+      ur: `میں سمجھ گیا کہ آپ نے کہا: "${input}"\n\nمیں آپ کی مالی ضروریات کے لیے ایڈوانس AI استعمال कر کے آپ کی درخواست پر کام कر رہا ہوں۔ میں آپ کی مدد کر سکتا ہوں:\n\n• لین دین ریکارڈ کرنا\n• بیلنس چیک کرنا\n• رپورटس بنانا\n• पैसे ट्रांसफर करना\n• خرچ का विश्लेषण\n\nآپ آگے کیا کرنا چاہیں گے؟`,
+      hi: `मैं समझ गया कि आपने कहा: "${input}"\n\nमैं आपकी वित्तीय जरूरतों के लिए उन्नत AI का उपयोग करके आपके अनुरोध को संसाधित कर रहा हूं। मैं आपकी मदद कर सकता हूं:\n\n• लेन-देन रिकॉर्ड करना\n• बैलेंस چेक करना\n• रिपोर्ट बनाना\n• पैसे ट्रांसफर करना\n• खर्च का विश्लेषण\n\nआप आगे क्या करना चाहेंगे?`,
     };
     
     return responses[lang] || responses.en;

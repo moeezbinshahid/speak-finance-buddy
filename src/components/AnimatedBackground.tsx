@@ -39,24 +39,26 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({ isDarkMo
         />
       ))}
       
-      <style jsx>{`
-        @keyframes upflow {
-          0% {
-            transform: translateY(100vh) scale(0);
-            opacity: 0;
+      <style>
+        {`
+          @keyframes upflow {
+            0% {
+              transform: translateY(100vh) scale(0);
+              opacity: 0;
+            }
+            10% {
+              opacity: 0.3;
+            }
+            90% {
+              opacity: 0.3;
+            }
+            100% {
+              transform: translateY(-100px) scale(1);
+              opacity: 0;
+            }
           }
-          10% {
-            opacity: 0.3;
-          }
-          90% {
-            opacity: 0.3;
-          }
-          100% {
-            transform: translateY(-100px) scale(1);
-            opacity: 0;
-          }
-        }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };

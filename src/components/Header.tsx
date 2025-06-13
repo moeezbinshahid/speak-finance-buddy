@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Moon, Sun, User, Menu } from 'lucide-react';
+import { Moon, Sun, User, Menu, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface HeaderProps {
@@ -20,32 +20,34 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className={`relative z-20 p-4 flex items-center justify-between
-      ${isDarkMode ? 'bg-black/50' : 'bg-white/30'} backdrop-blur-sm border-b
-      ${isDarkMode ? 'border-gray-800' : 'border-white/20'}
+      ${isDarkMode ? 'bg-black/30' : 'bg-white/30'} backdrop-blur-sm
     `}>
       <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onMenuClick}
-          className={`${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-black/5'}`}
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
+        {isAuthenticated && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMenuClick}
+            className={`${isDarkMode ? 'text-white/70 hover:bg-white/10 hover:text-white' : 'text-gray-600 hover:bg-black/5 hover:text-gray-900'}`}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
         
-        <h1 className={`text-xl font-bold
-          ${isDarkMode ? 'text-white' : 'text-gray-800'}
-        `}>
-          FinanceAI
-        </h1>
+        <div className="flex items-center gap-2">
+          <Clock className={`h-5 w-5 ${isDarkMode ? 'text-white/70' : 'text-gray-600'}`} />
+          <span className={`text-sm font-medium ${isDarkMode ? 'text-white/70' : 'text-gray-600'}`}>
+            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
       </div>
       
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setIsDarkMode(!isDarkMode)}
-          className={`${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-black/5'}`}
+          className={`rounded-full ${isDarkMode ? 'text-white/70 hover:bg-white/10 hover:text-white' : 'text-gray-600 hover:bg-black/5 hover:text-gray-900'}`}
         >
           {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </Button>
@@ -55,8 +57,8 @@ export const Header: React.FC<HeaderProps> = ({
           size="sm"
           onClick={onAuthClick}
           className={isAuthenticated 
-            ? `${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-black/5'}`
-            : 'bg-blue-600 hover:bg-blue-700 text-white'
+            ? `rounded-full ${isDarkMode ? 'text-white/70 hover:bg-white/10 hover:text-white' : 'text-gray-600 hover:bg-black/5 hover:text-gray-900'}`
+            : 'bg-blue-600 hover:bg-blue-700 text-white rounded-full'
           }
         >
           <User className="h-4 w-4 mr-2" />
