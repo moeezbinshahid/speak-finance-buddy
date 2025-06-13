@@ -1,10 +1,16 @@
+"use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Send, Banknote, Globe, Search } from 'lucide-react';
+import { Send, Banknote, Globe, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { AudioWaveform } from '@/components/animated-icons/AudioWaveform';
+import { ThumbsUp } from '@/components/animated-icons/ThumbsUp';
+import { ThumbsDown } from '@/components/animated-icons/ThumbsDown';
+import { Copy } from '@/components/animated-icons/Copy';
+import { ChevronsDown } from '@/components/animated-icons/ChevronsDown';
 
 interface ChatInterfaceProps {
   isDarkMode: boolean;
@@ -38,7 +44,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
   const [isListening, setIsListening] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [isLanguageMode, setIsLanguageMode] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
@@ -92,6 +100,33 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
       }]);
     }
   }, [isAuthenticated, messages.length]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleScroll = () => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
+      setShowScrollButton(isScrolledUp);
+    }
+  };
+
+  const handleCopyMessage = (content: string) => {
+    navigator.clipboard.writeText(content);
+    console.log('Message copied to clipboard');
+  };
+
+  const handleThumbsUp = (messageId: string) => {
+    console.log('Thumbs up for message:', messageId);
+    // Here you would typically send feedback to your backend
+  };
+
+  const handleThumbsDown = (messageId: string) => {
+    console.log('Thumbs down for message:', messageId);
+    // Here you would typically send feedback to your backend
+  };
 
   const handleVoiceToggle = () => {
     console.log('Voice toggle clicked, current state:', isListening);
@@ -162,7 +197,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
     const responses: Record<string, string> = {
       en: `I understand you said: "${input}"\n\nI'm processing your request using advanced AI to help with your financial needs. Here are some things I can help you with:\n\n• Record transactions\n• Check balances\n• Generate reports\n• Transfer money\n• Analyze spending patterns\n\nWhat would you like to do next?`,
       ur: `میں سمجھ گیا کہ آپ نے کہا: "${input}"\n\nمیں آپ کی مالی ضروریات کے لیے ایڈوانس AI استعمال کر کے آپ کی درخواست پر کام کر رہا ہوں۔ میں آپ کی مدد کر سکتا ہوں:\n\n• لین دین ریکارڈ کرنا\n• بیلنس چیک کرنا\n• رپورٹس بنانا\n• پیسے ٹرانسفر کرنا\n• خرچ کا تجزیہ\n\nآپ آگے کیا کرنا چاہیں گے؟`,
-      hi: `मैं समझ गया कि आपने कहा: "${input}"\n\nमैं आपकी वित्तीय जरूरतों के लिए उन्नत AI का उपयोग करके आपके अनुरोध को संसाधित कर रहा हूं। मैं आपकी मदद कर सकता हूं:\n\n• लेन-देन रिकॉर्ड करना\n• बैलेंस चेक करना\n• रिपोर्ट बनाना\n• पैसे ट्रांसफर करना\n• खर्च का विश्लेषण\n\nआप आगे क्या करना चाहेंगे?`,
+      hi: `मैं समझ गया कि आपने कहा: "${input}"\n\nमैं आपकी वित्तीय जरूरतों के लिए उन्नत AI का उपयोग करके आपके अनुरोध को संसाधित कर रहा हूँ। मैं आपकी मदद कर सकता हूँ:\n\n• लेन-देन रिकॉर्ड करना\n• बैलेंस चेक करना\n• रिपोर्ट बनाना\n• पैसे ट्रांसफर करना\n• खर्च का विश्लेषण\n\nआप आगे क्या करना चाहेंगे?`,
     };
     
     return responses[lang] || responses.en;
@@ -175,19 +210,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
     }
   };
 
-  // If no messages and user is not authenticated, show Daleel-style landing
   if (!isAuthenticated && messages.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-        {/* Centered Logo */}
-        <div className="mb-12 text-center">
-          <h1 className={`text-5xl md:text-6xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+        <div className="mb-8 text-center">
+          <h1 className={`text-5xl md:text-6xl font-kusanagi font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             FinanceAI
             <span className="text-blue-500">.</span>
           </h1>
         </div>
 
-        {/* Main Search Interface */}
         <div className="w-full max-w-2xl mb-8">
           <div className={`relative rounded-full p-2 ${isDarkMode ? 'bg-gray-800/80' : 'bg-white/80'} backdrop-blur-sm border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} shadow-lg`}>
             <div className="flex items-center gap-3 px-4">
@@ -199,42 +231,30 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
                 className={`flex-1 border-0 bg-transparent text-lg placeholder:text-base focus-visible:ring-0 ${
                   isDarkMode ? 'text-white placeholder:text-gray-400' : 'text-gray-900 placeholder:text-gray-500'
                 }`}
-                onKeyPress={handleKeyPress}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleVoiceToggle}
-                className={`rounded-full p-2 ${
-                  isListening 
-                    ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-950' 
-                    : isDarkMode 
-                      ? 'text-gray-400 hover:bg-gray-700' 
-                      : 'text-gray-500 hover:bg-gray-100'
-                }`}
-              >
-                {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-              </Button>
+              <div className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                <AudioWaveform 
+                  width={20} 
+                  height={20} 
+                  stroke="currentColor"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Subtitle */}
         <p className={`text-center text-lg mb-12 max-w-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
           Your intelligent financial assistant supporting multiple languages and voice commands.
         </p>
 
-        {/* Language Selection */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
           {supportedLanguages.slice(0, 5).map((lang) => (
             <Button
               key={lang.code}
               variant="outline"
               size="sm"
-              onClick={() => {
-                console.log('Language selected:', lang.code);
-                setSelectedLanguage(lang.code);
-              }}
+              onClick={() => setSelectedLanguage(lang.code)}
               className={`${
                 selectedLanguage === lang.code
                   ? 'bg-blue-600 text-white border-blue-600'
@@ -249,7 +269,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
           ))}
         </div>
 
-        {/* CTA */}
         <p className={`text-sm text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
           Sign in to start managing your finances with AI
         </p>
@@ -258,7 +277,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
   }
 
   return (
-    <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
+    <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full relative">
       {/* Language selector */}
       {isLanguageMode && (
         <Card className={`m-4 p-4 ${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white/50 border-gray-200'}`}>
@@ -272,7 +291,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
                 variant={selectedLanguage === lang.code ? "default" : "outline"}
                 size="sm"
                 onClick={() => {
-                  console.log('Language changed to:', lang.code);
                   setSelectedLanguage(lang.code);
                   setIsLanguageMode(false);
                 }}
@@ -293,7 +311,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
       )}
       
       {/* Chat messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-4 space-y-4"
+        onScroll={handleScroll}
+      >
         {messages.map((message) => (
           <div
             key={message.id}
@@ -311,12 +333,37 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
               <div className="whitespace-pre-wrap text-sm leading-relaxed">
                 {message.content}
               </div>
-              <div className="flex items-center justify-between mt-2 text-xs opacity-70">
-                <span>{message.timestamp.toLocaleTimeString()}</span>
-                {message.language && (
-                  <Badge variant="secondary" className="text-xs">
-                    {supportedLanguages.find(l => l.code === message.language)?.flag} {message.language.toUpperCase()}
-                  </Badge>
+              <div className="flex items-center justify-between mt-3 text-xs opacity-70">
+                <div className="flex items-center gap-2">
+                  <span>{message.timestamp.toLocaleTimeString()}</span>
+                  {message.language && (
+                    <Badge variant="secondary" className="text-xs">
+                      {supportedLanguages.find(l => l.code === message.language)?.flag} {message.language.toUpperCase()}
+                    </Badge>
+                  )}
+                </div>
+                
+                {message.type === 'ai' && (
+                  <div className="flex items-center gap-1 ml-2">
+                    <ThumbsUp 
+                      width={16} 
+                      height={16}
+                      stroke="currentColor"
+                      onClick={() => handleThumbsUp(message.id)}
+                    />
+                    <ThumbsDown 
+                      width={16} 
+                      height={16}
+                      stroke="currentColor"
+                      onClick={() => handleThumbsDown(message.id)}
+                    />
+                    <Copy 
+                      width={16} 
+                      height={16}
+                      stroke="currentColor"
+                      onClick={() => handleCopyMessage(message.content)}
+                    />
+                  </div>
                 )}
               </div>
             </Card>
@@ -324,6 +371,26 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
         ))}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Scroll to bottom button */}
+      {showScrollButton && (
+        <div className="absolute bottom-20 right-6 z-10">
+          <Button
+            onClick={scrollToBottom}
+            className={`rounded-full p-2 shadow-lg ${
+              isDarkMode 
+                ? 'bg-gray-800 hover:bg-gray-700 text-white' 
+                : 'bg-white hover:bg-gray-50 text-gray-900'
+            } border`}
+          >
+            <ChevronsDown 
+              width={20} 
+              height={20} 
+              stroke="currentColor"
+            />
+          </Button>
+        </div>
+      )}
       
       {/* Input area */}
       {isAuthenticated && (
@@ -333,10 +400,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  console.log('Language mode toggled');
-                  setIsLanguageMode(!isLanguageMode);
-                }}
+                onClick={() => setIsLanguageMode(!isLanguageMode)}
                 className={`${isDarkMode ? 'text-gray-300 hover:bg-gray-600' : 'text-gray-600 hover:bg-gray-200'}`}
               >
                 <Globe className="h-4 w-4" />
@@ -346,7 +410,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
                 <Input
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                   placeholder={
                     selectedLanguage === 'ur' ? 'اپنا مالی سوال یہاں لکھیں...' :
                     selectedLanguage === 'hi' ? 'अपना वित्तीय प्रश्न यहाँ लिखें...' :
@@ -361,20 +425,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
                 />
               </div>
               
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleVoiceToggle}
-                className={`${
-                  isListening 
-                    ? 'text-red-500 hover:bg-red-50' 
-                    : isDarkMode 
-                      ? 'text-gray-300 hover:bg-gray-600' 
-                      : 'text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </Button>
+              <div className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                <AudioWaveform 
+                  width={20} 
+                  height={20} 
+                  stroke="currentColor"
+                />
+              </div>
               
               <Button
                 variant="ghost"
@@ -406,4 +463,64 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
       )}
     </div>
   );
+};
+
+const handleSendMessage = () => {
+  if (!inputValue.trim()) {
+    console.log('Empty input, not sending message');
+    return;
+  }
+  
+  console.log('Sending message:', inputValue);
+  
+  const userMessage: Message = {
+    id: Date.now().toString(),
+    type: 'user',
+    content: inputValue,
+    timestamp: new Date(),
+    language: selectedLanguage,
+  };
+  
+  setMessages(prev => [...prev, userMessage]);
+  
+  // Simulate AI response
+  setTimeout(() => {
+    const aiMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      type: 'ai',
+      content: getAIResponse(inputValue, selectedLanguage),
+      timestamp: new Date(),
+    };
+    console.log('Adding AI response:', aiMessage.content);
+    setMessages(prev => [...prev, aiMessage]);
+  }, 1000);
+  
+  setInputValue('');
+};
+
+const getAIResponse = (input: string, lang: string): string => {
+  const lowerInput = input.toLowerCase();
+  console.log('Generating AI response for input:', input, 'in language:', lang);
+  
+  // Transaction pattern recognition
+  if (lowerInput.includes('spent') || lowerInput.includes('bought') || lowerInput.includes('paid')) {
+    return `✅ Transaction recorded! I've logged your expense. Here's what I understood:\n\n💰 **Amount**: Detected from your message\n📝 **Description**: ${input}\n📅 **Date**: ${new Date().toLocaleDateString()}\n\nWould you like me to categorize this transaction or add any additional details?`;
+  }
+  
+  if (lowerInput.includes('balance') || lowerInput.includes('money')) {
+    return `💳 **Current Balance**: $2,513.42\n\n📊 **Quick Overview**:\n• Income this month: +$3,250.00\n• Expenses this month: -$736.58\n• Net change: +$2,513.42 (↗ +12.5%)\n\nYour finances are looking healthy! 🎉`;
+  }
+  
+  if (lowerInput.includes('send') || lowerInput.includes('transfer')) {
+    return `🏦 **Transfer Request Detected**\n\nI can help you transfer money! For your security, I'll need to confirm:\n\n1. **Amount**: Please confirm the exact amount\n2. **Recipient**: Who should receive the money?\n3. **Account**: Which account to use?\n\n⚠️ *Note: This is a demo version. Real transfers would require additional security verification.*`;
+  }
+  
+  // Language-specific responses
+  const responses: Record<string, string> = {
+    en: `I understand you said: "${input}"\n\nI'm processing your request using advanced AI to help with your financial needs. Here are some things I can help you with:\n\n• Record transactions\n• Check balances\n• Generate reports\n• Transfer money\n• Analyze spending patterns\n\nWhat would you like to do next?`,
+    ur: `میں سمجھ گیا کہ آپ نے کہا: "${input}"\n\nمیں آپ کی مالی ضروریات کے لیے ایڈوانس AI استعمال کر کے آپ کی درخواست پر کام کر رہا ہوں۔ میں آپ کی مدد کر سکتا ہوں:\n\n• لین دین ریکارڈ کرنا\n• بیلنس چیک کرنا\n• رپورٹس بنانا\n• پیسے ٹرانسفر کرنا\n• خرچ کا تجزیہ\n\nآپ آگے کیا کرنا چاہیں گے؟`,
+    hi: `मैं समझ गया कि आपने कहा: "${input}"\n\nमैं आपकी वित्तीय जरूरतों के लिए उन्नत AI का उपयोग करके आपके अनुरोध को संसाधित कर रहा हूँ। मैं आपकी मदद कर सकता हूँ:\n\n• लेन-देन रिकॉर्ड करना\n• बैलेंस चेक करना\n• रिपोर्ट बनाना\n• पैसे ट्रांसफर करना\n• खर्च का विश्लेषण\n\nआप आगे क्या करना चाहेंगे?`,
+  };
+  
+  return responses[lang] || responses.en;
 };
