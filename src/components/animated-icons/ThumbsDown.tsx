@@ -43,7 +43,20 @@ const ThumbsDown = ({
   const controls = useAnimation();
 
   // Filter out event handlers that might conflict with motion
-  const { onAnimationStart, onAnimationEnd, onAnimationIteration, ...cleanSvgProps } = svgProps;
+  const { 
+    onAnimationStart, 
+    onAnimationEnd, 
+    onAnimationIteration,
+    onDragStart,
+    onDragEnd,
+    onDrag,
+    onDragEnter,
+    onDragExit,
+    onDragLeave,
+    onDragOver,
+    onDrop,
+    ...cleanSvgProps 
+  } = svgProps;
 
   return (
     <div
