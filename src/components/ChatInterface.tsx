@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -12,6 +11,7 @@ import { ThumbsUp } from '@/components/animated-icons/ThumbsUp';
 import { ThumbsDown } from '@/components/animated-icons/ThumbsDown';
 import { Copy } from '@/components/animated-icons/Copy';
 import { ChevronsDown } from '@/components/animated-icons/ChevronsDown';
+import { TransactionDisplay } from '@/components/TransactionDisplay';
 
 interface ChatInterfaceProps {
   isDarkMode: boolean;
@@ -24,6 +24,14 @@ interface Message {
   content: string;
   timestamp: Date;
   language?: string;
+  transaction?: {
+    id: string;
+    type: 'income' | 'expense';
+    amount: number;
+    description: string;
+    counterparty?: string;
+    date: string;
+  };
 }
 
 const supportedLanguages = [
@@ -39,8 +47,11 @@ const supportedLanguages = [
   { code: 'fa', name: 'Persian', flag: '🇮🇷' },
 ];
 
-// GPT-4 API integration
-const sendMessageToGPT = async (userInput: string): Promise<string> => {
+// Mock balance for demonstration
+let currentBalance = 2513.42;
+
+// GPT-4 API integration with transaction parsing
+const sendMessageToGPT = async (userInput: string): Promise<{ response: string; transaction?: any }> => {
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -49,11 +60,30 @@ const sendMessageToGPT = async (userInput: string): Promise<string> => {
         Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-4.1-2025-04-14",
+        model: "gpt-4-turbo-preview",
         messages: [
           {
             role: "system",
-            content: "You are FinanceAI, a helpful financial assistant. Provide clear, actionable financial advice and help users manage their money, track expenses, and make informed financial decisions."
+            content: `You are FinanceAI, a helpful financial assistant. 
+
+When users mention transactions like "Zahid gave 500$ yesterday" or "I spent 25$ on lunch", respond with:
+1. A natural acknowledgment
+2. Then ALWAYS include a JSON block in this EXACT format:
+---TRANSACTION---
+{
+  "type": "income" or "expense",
+  "amount": number,
+  "counterparty": "name" or null,
+  "description": "brief description",
+  "date": "YYYY-MM-DD"
+}
+---END---
+
+Examples:
+- "Zahid gave 500$ yesterday" → type: "income", amount: 500, counterparty: "Zahid", description: "Payment from Zahid"
+- "I spent 25$ on lunch" → type: "expense", amount: 25, counterparty: null, description: "Lunch expense"
+
+For non-transaction messages, provide normal financial advice without the JSON block.`
           },
           { role: "user", content: userInput }
         ],
@@ -67,10 +97,31 @@ const sendMessageToGPT = async (userInput: string): Promise<string> => {
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    const aiResponse = data.choices[0].message.content;
+    
+    // Parse transaction if present
+    const transactionMatch = aiResponse.match(/---TRANSACTION---(.*?)---END---/s);
+    let transaction = null;
+    
+    if (transactionMatch) {
+      try {
+        transaction = JSON.parse(transactionMatch[1].trim());
+        transaction.id = Date.now().toString();
+        transaction.date = transaction.date || new Date().toISOString().split('T')[0];
+      } catch (e) {
+        console.error('Error parsing transaction:', e);
+      }
+    }
+    
+    // Remove transaction block from response
+    const cleanResponse = aiResponse.replace(/---TRANSACTION---.*?---END---/s, '').trim();
+    
+    return { response: cleanResponse, transaction };
   } catch (error) {
     console.error('Error calling GPT-4 API:', error);
-    return "I'm sorry, I'm having trouble connecting to my AI services right now. Please try again in a moment.";
+    return { 
+      response: "I'm sorry, I'm having trouble connecting to my AI services right now. Please try again in a moment." 
+    };
   }
 };
 
@@ -200,17 +251,31 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
     setInputValue('');
     setIsLoading(true);
     
-    // Get AI response from GPT-4
+    // Get AI response from GPT-4 with transaction parsing
     try {
-      const aiResponse = await sendMessageToGPT(inputValue);
+      const { response: aiResponse, transaction } = await sendMessageToGPT(inputValue);
+      
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
         content: aiResponse,
         timestamp: new Date(),
+        transaction: transaction,
       };
+      
       console.log('Adding AI response:', aiMessage.content);
+      if (transaction) console.log('Transaction detected:', transaction);
+      
       setMessages(prev => [...prev, aiMessage]);
+      
+      // Update balance if transaction detected
+      if (transaction) {
+        if (transaction.type === 'income') {
+          currentBalance += transaction.amount;
+        } else {
+          currentBalance -= transaction.amount;
+        }
+      }
     } catch (error) {
       console.error('Error getting AI response:', error);
       const errorMessage: Message = {
@@ -448,7 +513,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
                 <Input
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                   placeholder={
                     selectedLanguage === 'ur' ? 'اپنا مالی سوال یہاں لکھیں...' :
                     selectedLanguage === 'hi' ? 'अपना वित्तीय प्रश्न यहाँ लिखें...' :

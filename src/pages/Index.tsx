@@ -5,7 +5,7 @@ import { ChatInterface } from "@/components/ChatInterface";
 import { Sidebar } from "@/components/Sidebar";
 import { AuthModal } from "@/components/AuthModal";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
-import { SocialMediaIcons } from "@/components/SocialMediaIcons";
+import { SwipeMenu } from "@/components/SwipeMenu";
 import { Preloader } from "@/components/Preloader";
 
 const Index = () => {
@@ -15,6 +15,7 @@ const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [swipeMenuOpen, setSwipeMenuOpen] = useState(false);
 
   useEffect(() => {
     // Simulate loading time
@@ -50,7 +51,7 @@ const Index = () => {
             isAuthenticated={isAuthenticated}
           />
           
-          <main className="flex-1 flex flex-col">
+          <main className="flex-1 flex flex-col relative">
             {/* Always show FinanceAI title */}
             <div className="flex justify-center pt-8 mb-4">
               <h1 className={`text-4xl md:text-5xl font-kusanagi font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -59,23 +60,37 @@ const Index = () => {
               </h1>
             </div>
             
-            {!isAuthenticated && (
-              <div className="flex justify-center">
-                <SocialMediaIcons 
-                  isDarkMode={isDarkMode} 
-                  onLanguageSelect={setSelectedLanguage}
-                  selectedLanguage={selectedLanguage}
-                />
-              </div>
-            )}
-            
             <ChatInterface 
               isDarkMode={isDarkMode}
               isAuthenticated={isAuthenticated}
             />
+
+            {/* Swipe indicator - only show when not authenticated */}
+            {!isAuthenticated && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+                <div 
+                  className={`w-12 h-1 rounded-full cursor-pointer transition-all duration-300 hover:h-2 ${
+                    isDarkMode ? 'bg-gray-600 hover:bg-gray-500' : 'bg-gray-400 hover:bg-gray-500'
+                  }`}
+                  onClick={() => setSwipeMenuOpen(true)}
+                />
+                <p className={`text-xs text-center mt-2 ${
+                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                }`}>
+                  Swipe up
+                </p>
+              </div>
+            )}
           </main>
         </div>
       </div>
+
+      {/* Swipe Menu */}
+      <SwipeMenu 
+        isDarkMode={isDarkMode}
+        isOpen={swipeMenuOpen}
+        onOpenChange={setSwipeMenuOpen}
+      />
 
       {showAuthModal && (
         <AuthModal
