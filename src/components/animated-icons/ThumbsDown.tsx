@@ -42,7 +42,7 @@ const ThumbsDown = ({
 }: ThumbsDownProps) => {
   const controls = useAnimation();
 
-  // Filter out event handlers that might conflict with motion
+  // Filter out event handlers and props that might conflict with motion
   const { 
     onAnimationStart, 
     onAnimationEnd, 
@@ -55,6 +55,7 @@ const ThumbsDown = ({
     onDragLeave,
     onDragOver,
     onDrop,
+    values,
     ...cleanSvgProps 
   } = svgProps;
 
