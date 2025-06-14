@@ -20,10 +20,10 @@ const defaultTransition: Transition = {
 };
 
 const Copy = ({
-  width = 20,
-  height = 20,
+  width = 28,
+  height = 28,
   strokeWidth = 2,
-  stroke = "currentColor",
+  stroke = "#ffffff",
   onClick,
   ...props
 }: CopyProps) => {
@@ -34,7 +34,7 @@ const Copy = ({
       style={{
         cursor: "pointer",
         userSelect: "none",
-        padding: "4px",
+        padding: "8px",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -63,8 +63,8 @@ const Copy = ({
           rx="2"
           ry="2"
           variants={{
-            normal: { translateY: 0, translateX: 0 },
-            animate: { translateY: -3, translateX: -3 },
+            normal: { y: 0, x: 0 },
+            animate: { y: -3, x: -3 },
           }}
           animate={controls}
           transition={defaultTransition}

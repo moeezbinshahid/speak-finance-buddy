@@ -9,7 +9,6 @@ interface ChevronsDownProps extends React.SVGAttributes<SVGSVGElement> {
   height?: number;
   strokeWidth?: number;
   stroke?: string;
-  onClick?: () => void;
 }
 
 const chevronVariants: Variants = {
@@ -28,11 +27,10 @@ const chevronVariants: Variants = {
 };
 
 const ChevronsDown = ({
-  width = 24,
-  height = 24,
+  width = 28,
+  height = 28,
   strokeWidth = 2,
-  stroke = "currentColor",
-  onClick,
+  stroke = "#ffffff",
   ...props
 }: ChevronsDownProps) => {
   const controls = useAnimation();
@@ -49,7 +47,6 @@ const ChevronsDown = ({
       }}
       onMouseEnter={() => controls.start("animate")}
       onMouseLeave={() => controls.start("normal")}
-      onClick={onClick}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -68,16 +65,12 @@ const ChevronsDown = ({
           variants={chevronVariants}
           animate={controls}
           initial="normal"
-          custom={0}
-          transition={{ delay: 0 }}
         />
         <motion.path
           d="m7 13 5 5 5-5"
           variants={chevronVariants}
           animate={controls}
           initial="normal"
-          custom={1}
-          transition={{ delay: 0.1 }}
         />
       </svg>
     </div>

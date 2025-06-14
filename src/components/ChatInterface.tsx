@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -38,6 +39,41 @@ const supportedLanguages = [
   { code: 'fa', name: 'Persian', flag: '🇮🇷' },
 ];
 
+// GPT-4 API integration
+const sendMessageToGPT = async (userInput: string): Promise<string> => {
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4.1-2025-04-14",
+        messages: [
+          {
+            role: "system",
+            content: "You are FinanceAI, a helpful financial assistant. Provide clear, actionable financial advice and help users manage their money, track expenses, and make informed financial decisions."
+          },
+          { role: "user", content: userInput }
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error('Error calling GPT-4 API:', error);
+    return "I'm sorry, I'm having trouble connecting to my AI services right now. Please try again in a moment.";
+  }
+};
+
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuthenticated }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -45,6 +81,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [isLanguageMode, setIsLanguageMode] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -95,7 +132,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
       setMessages([{
         id: '1',
         type: 'ai',
-        content: `Welcome to FinanceAI! 👋 I'm your personal financial assistant. You can:\n\n• Tell me about transactions: "I spent $25 on lunch"\n• Ask about your balance: "What's my current balance?"\n• Request reports: "Show me this month's expenses"\n• Transfer money: "Send $100 to John"\n\nI speak multiple languages! Try switching languages or just speak naturally. How can I help you today?`,
+        content: `Welcome to FinanceAI! 👋 I'm your personal financial assistant powered by GPT-4. You can:\n\n• Tell me about transactions: "I spent $25 on lunch"\n• Ask about your balance: "What's my current balance?"\n• Request financial advice: "How should I budget my income?"\n• Get investment tips: "What are some good investment options?"\n\nI speak multiple languages! Try switching languages or just speak naturally. How can I help you today?`,
         timestamp: new Date(),
       }]);
     }
@@ -143,7 +180,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
     }
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputValue.trim()) {
       console.log('Empty input, not sending message');
       return;
@@ -160,47 +197,32 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
     };
     
     setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
+    setIsLoading(true);
     
-    // Simulate AI response
-    setTimeout(() => {
+    // Get AI response from GPT-4
+    try {
+      const aiResponse = await sendMessageToGPT(inputValue);
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: getAIResponse(inputValue, selectedLanguage),
+        content: aiResponse,
         timestamp: new Date(),
       };
       console.log('Adding AI response:', aiMessage.content);
       setMessages(prev => [...prev, aiMessage]);
-    }, 1000);
-    
-    setInputValue('');
-  };
-
-  const getAIResponse = (input: string, lang: string): string => {
-    const lowerInput = input.toLowerCase();
-    console.log('Generating AI response for input:', input, 'in language:', lang);
-    
-    // Transaction pattern recognition
-    if (lowerInput.includes('spent') || lowerInput.includes('bought') || lowerInput.includes('paid')) {
-      return `✅ Transaction recorded! I've logged your expense. Here's what I understood:\n\n💰 **Amount**: Detected from your message\n📝 **Description**: ${input}\n📅 **Date**: ${new Date().toLocaleDateString()}\n\nWould you like me to categorize this transaction or add any additional details?`;
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: "I'm sorry, I encountered an error processing your request. Please try again.",
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
-    
-    if (lowerInput.includes('balance') || lowerInput.includes('money')) {
-      return `💳 **Current Balance**: $2,513.42\n\n📊 **Quick Overview**:\n• Income this month: +$3,250.00\n• Expenses this month: -$736.58\n• Net change: +$2,513.42 (↗ +12.5%)\n\nYour finances are looking healthy! 🎉`;
-    }
-    
-    if (lowerInput.includes('send') || lowerInput.includes('transfer')) {
-      return `🏦 **Transfer Request Detected**\n\nI can help you transfer money! For your security, I'll need to confirm:\n\n1. **Amount**: Please confirm the exact amount\n2. **Recipient**: Who should receive the money?\n3. **Account**: Which account to use?\n\n⚠️ *Note: This is a demo version. Real transfers would require additional security verification.*`;
-    }
-    
-    // Language-specific responses
-    const responses: Record<string, string> = {
-      en: `I understand you said: "${input}"\n\nI'm processing your request using advanced AI to help with your financial needs. Here are some things I can help you with:\n\n• Record transactions\n• Check balances\n• Generate reports\n• Transfer money\n• Analyze spending patterns\n\nWhat would you like to do next?`,
-      ur: `میں سمجھ گیا کہ آپ نے کہا: "${input}"\n\nمیں آپ کی مالی ضروریات کے لیے ایڈوانس AI استعمال کر کے آپ کی درخواست پر کام کر رہا ہوں۔ میں آپ کی مدد کر سکتا ہوں:\n\n• لین دین ریکارڈ کرنا\n• بیلنس چیک کرنا\n• رپورٹس بنانا\n• پیسے ٹرانسفر کرنا\n• خرچ کا تجزیہ\n\nآپ آگے کیا کرنا چاہیں گے؟`,
-      hi: `मैं समझ गया कि आपने कहा: "${input}"\n\nमैं आपकी वित्तीय जरूरतों के लिए उन्नत AI का उपयोग करके आपके अनुरोध को संसाधित कर रहा हूँ। मैं आपकी मदद कर सकता हूँ:\n\n• लेन-देन रिकॉर्ड करना\n• बैलेंस चेक करना\n• रिपोर्ट बनाना\n• पैसे ट्रांसफर करना\n• खर्च का विश्लेषण\n\nआप आगे क्या करना चाहेंगे?`,
-    };
-    
-    return responses[lang] || responses.en;
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -245,7 +267,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
         </div>
 
         <p className={`text-center text-lg mb-12 max-w-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-          Your intelligent financial assistant supporting multiple languages and voice commands.
+          Your intelligent financial assistant powered by GPT-4, supporting multiple languages and voice commands.
         </p>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
@@ -369,6 +391,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
             </Card>
           </div>
         ))}
+        
+        {isLoading && (
+          <div className="flex justify-start">
+            <Card className={`max-w-xs md:max-w-md p-3 ${
+              isDarkMode
+                ? 'bg-gray-800/50 border-gray-700 text-white'
+                : 'bg-white/80 border-gray-200 text-gray-900'
+            }`}>
+              <div className="flex items-center gap-2">
+                <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                <span className="text-sm">FinanceAI is thinking...</span>
+              </div>
+            </Card>
+          </div>
+        )}
+        
         <div ref={messagesEndRef} />
       </div>
 
@@ -410,7 +448,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
                 <Input
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                  onKeyPress={handleKeyPress}
                   placeholder={
                     selectedLanguage === 'ur' ? 'اپنا مالی سوال یہاں لکھیں...' :
                     selectedLanguage === 'hi' ? 'अपना वित्तीय प्रश्न यहाँ लिखें...' :
@@ -422,6 +460,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
                       ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' 
                       : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                   }`}
+                  disabled={isLoading}
                 />
               </div>
               
@@ -444,7 +483,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
               
               <Button
                 onClick={handleSendMessage}
-                disabled={!inputValue.trim()}
+                disabled={!inputValue.trim() || isLoading}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Send className="h-4 w-4" />
@@ -463,64 +502,4 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
       )}
     </div>
   );
-};
-
-const handleSendMessage = () => {
-  if (!inputValue.trim()) {
-    console.log('Empty input, not sending message');
-    return;
-  }
-  
-  console.log('Sending message:', inputValue);
-  
-  const userMessage: Message = {
-    id: Date.now().toString(),
-    type: 'user',
-    content: inputValue,
-    timestamp: new Date(),
-    language: selectedLanguage,
-  };
-  
-  setMessages(prev => [...prev, userMessage]);
-  
-  // Simulate AI response
-  setTimeout(() => {
-    const aiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      type: 'ai',
-      content: getAIResponse(inputValue, selectedLanguage),
-      timestamp: new Date(),
-    };
-    console.log('Adding AI response:', aiMessage.content);
-    setMessages(prev => [...prev, aiMessage]);
-  }, 1000);
-  
-  setInputValue('');
-};
-
-const getAIResponse = (input: string, lang: string): string => {
-  const lowerInput = input.toLowerCase();
-  console.log('Generating AI response for input:', input, 'in language:', lang);
-  
-  // Transaction pattern recognition
-  if (lowerInput.includes('spent') || lowerInput.includes('bought') || lowerInput.includes('paid')) {
-    return `✅ Transaction recorded! I've logged your expense. Here's what I understood:\n\n💰 **Amount**: Detected from your message\n📝 **Description**: ${input}\n📅 **Date**: ${new Date().toLocaleDateString()}\n\nWould you like me to categorize this transaction or add any additional details?`;
-  }
-  
-  if (lowerInput.includes('balance') || lowerInput.includes('money')) {
-    return `💳 **Current Balance**: $2,513.42\n\n📊 **Quick Overview**:\n• Income this month: +$3,250.00\n• Expenses this month: -$736.58\n• Net change: +$2,513.42 (↗ +12.5%)\n\nYour finances are looking healthy! 🎉`;
-  }
-  
-  if (lowerInput.includes('send') || lowerInput.includes('transfer')) {
-    return `🏦 **Transfer Request Detected**\n\nI can help you transfer money! For your security, I'll need to confirm:\n\n1. **Amount**: Please confirm the exact amount\n2. **Recipient**: Who should receive the money?\n3. **Account**: Which account to use?\n\n⚠️ *Note: This is a demo version. Real transfers would require additional security verification.*`;
-  }
-  
-  // Language-specific responses
-  const responses: Record<string, string> = {
-    en: `I understand you said: "${input}"\n\nI'm processing your request using advanced AI to help with your financial needs. Here are some things I can help you with:\n\n• Record transactions\n• Check balances\n• Generate reports\n• Transfer money\n• Analyze spending patterns\n\nWhat would you like to do next?`,
-    ur: `میں سمجھ گیا کہ آپ نے کہا: "${input}"\n\nمیں آپ کی مالی ضروریات کے لیے ایڈوانس AI استعمال کر کے آپ کی درخواست پر کام کر رہا ہوں۔ میں آپ کی مدد کر سکتا ہوں:\n\n• لین دین ریکارڈ کرنا\n• بیلنس چیک کرنا\n• رپورٹس بنانا\n• پیسے ٹرانسفر کرنا\n• خرچ کا تجزیہ\n\nآپ آگے کیا کرنا چاہیں گے؟`,
-    hi: `मैं समझ गया कि आपने कहा: "${input}"\n\nमैं आपकी वित्तीय जरूरतों के लिए उन्नत AI का उपयोग करके आपके अनुरोध को संसाधित कर रहा हूँ। मैं आपकी मदद कर सकता हूँ:\n\n• लेन-देन रिकॉर्ड करना\n• बैलेंस चेक करना\n• रिपोर्ट बनाना\n• पैसे ट्रांसफर करना\n• खर्च का विश्लेषण\n\nआप आगे क्या करना चाहेंगे?`,
-  };
-  
-  return responses[lang] || responses.en;
 };

@@ -31,10 +31,10 @@ interface ThumbsUpProps extends React.SVGAttributes<SVGSVGElement> {
 }
 
 const ThumbsUp = ({
-  width = 20,
-  height = 20,
+  width = 28,
+  height = 28,
   strokeWidth = 2,
-  stroke = "currentColor",
+  stroke = "#ffffff",
   onClick,
   ...props
 }: ThumbsUpProps) => {
@@ -45,7 +45,7 @@ const ThumbsUp = ({
       style={{
         cursor: "pointer",
         userSelect: "none",
-        padding: "4px",
+        padding: "8px",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

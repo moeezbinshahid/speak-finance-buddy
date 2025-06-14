@@ -14,6 +14,7 @@ const Index = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
 
   useEffect(() => {
     // Simulate loading time
@@ -50,9 +51,21 @@ const Index = () => {
           />
           
           <main className="flex-1 flex flex-col">
+            {/* Always show FinanceAI title */}
+            <div className="flex justify-center pt-8 mb-4">
+              <h1 className={`text-4xl md:text-5xl font-kusanagi font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                FinanceAI
+                <span className="text-blue-500">.</span>
+              </h1>
+            </div>
+            
             {!isAuthenticated && (
-              <div className="flex justify-center pt-8">
-                <SocialMediaIcons isDarkMode={isDarkMode} />
+              <div className="flex justify-center">
+                <SocialMediaIcons 
+                  isDarkMode={isDarkMode} 
+                  onLanguageSelect={setSelectedLanguage}
+                  selectedLanguage={selectedLanguage}
+                />
               </div>
             )}
             

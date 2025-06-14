@@ -30,7 +30,7 @@ const AudioWaveform = ({
   width = 28,
   height = 28,
   strokeWidth = 2,
-  stroke = "currentColor",
+  stroke = "#ffffff",
   ...props
 }: AudioWaveformProps) => {
   const controls = useAnimation();
