@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Heart, Instagram, X, Mic, HelpCircle, Info, LogOut } from 'lucide-react';
+import { Heart, Instagram, X, Mic, HelpCircle, Info, LogOut, Linkedin } from 'lucide-react';
 import { 
   Drawer,
   DrawerContent,
@@ -17,10 +18,12 @@ interface SwipeMenuProps {
   onLogout?: () => void;
 }
 
+// Updated URLs per user instructions
 const socialMediaLinks = [
   { name: 'Rate the App', icon: Heart, url: '#', color: 'text-red-500' },
-  { name: 'Follow on Instagram', icon: Instagram, url: '#', color: 'text-pink-500' },
-  { name: 'Follow on X', icon: X, url: '#', color: 'text-gray-400' },
+  { name: 'Follow on Instagram', icon: Instagram, url: 'https://www.instagram.com/moeez.bin.shahid/', color: 'text-pink-500' },
+  { name: 'Follow on X', icon: X, url: 'https://x.com/moeez_writes', color: 'text-gray-400' },
+  { name: 'Follow on LinkedIn', icon: Linkedin, url: 'https://www.linkedin.com/in/moeez-bin-shahid/', color: 'text-blue-600' },
 ];
 
 const supportItems = [
@@ -55,7 +58,7 @@ export const SwipeMenu: React.FC<SwipeMenuProps> = ({
               Stay in touch
             </h3>
             <div className="space-y-2">
-              {socialMediaLinks.map((social) => (
+              {socialMediaLinks.map((social, idx) => (
                 <Button
                   key={social.name}
                   variant="ghost"

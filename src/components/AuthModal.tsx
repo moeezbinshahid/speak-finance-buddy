@@ -46,26 +46,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
   };
 
   const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/`
-        }
-      });
-      
-      if (error) {
-        setError(error.message);
-      }
-    } catch (err) {
-      console.error('Google sign-in error:', err);
-      setError('Failed to sign in with Google');
-    } finally {
-      setIsLoading(false);
-    }
+    window.open('https://accounts.google.com/ServiceLogin?hl=en&passive=true&continue=https://www.google.com/&ec=futura_exp_og_so_72776762_e', '_blank');
   };
 
   const handleEmailSignIn = async () => {
