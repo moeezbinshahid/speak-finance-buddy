@@ -21,7 +21,12 @@ interface SwipeMenuProps {
 // Updated URLs per user instructions
 const socialMediaLinks = [
   { name: 'Rate the App', icon: Heart, url: '#', color: 'text-red-500' },
-  { name: 'Follow on Instagram', icon: Instagram, url: 'https://www.instagram.com/moeez.bin.shahid/', color: 'text-pink-500' },
+  { 
+    name: 'Follow on Instagram', 
+    icon: Instagram, 
+    url: 'https://www.instagram.com/moeez.bin.shahid?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==', 
+    color: 'text-pink-500' 
+  },
   { name: 'Follow on X', icon: X, url: 'https://x.com/moeez_writes', color: 'text-gray-400' },
   { name: 'Follow on LinkedIn', icon: Linkedin, url: 'https://www.linkedin.com/in/moeez-bin-shahid/', color: 'text-blue-600' },
 ];
