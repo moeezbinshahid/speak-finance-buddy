@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -251,6 +250,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
       console.log('Empty input, not sending message');
       return;
     }
+
+    // Prevent AI responses for non-authenticated users
+    if (!isAuthenticated) {
+      console.log('User not authenticated, blocking message');
+      return;
+    }
     
     console.log('Sending message:', inputValue);
     
@@ -266,7 +271,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
     setInputValue('');
     setIsLoading(true);
     
-    // Get AI response
+    // Get AI response - only for authenticated users
     try {
       const { response: aiResponse, transaction } = await generateAIResponse(inputValue);
       
@@ -318,13 +323,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
             <div className="flex items-center gap-3 px-4">
               <Search className={`h-5 w-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
               <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Ask about your finances, log expenses, or transfer money..."
+                value=""
+                placeholder="Sign in to ask about your finances..."
                 className={`flex-1 border-0 bg-transparent text-lg placeholder:text-base focus-visible:ring-0 ${
                   isDarkMode ? 'text-white placeholder:text-gray-400' : 'text-gray-900 placeholder:text-gray-500'
                 }`}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                disabled
               />
               <div className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 <AudioWaveform 
@@ -347,7 +351,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
               key={lang.code}
               variant="outline"
               size="sm"
-              onClick={() => setSelectedLanguage(lang.code)}
+              disabled
               className={`${
                 selectedLanguage === lang.code
                   ? 'bg-blue-600 text-white border-blue-600'
@@ -515,7 +519,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
         </div>
       )}
       
-      {/* Input area */}
+      {/* Input area - only show if authenticated */}
       {isAuthenticated && (
         <div className="p-4">
           <Card className={`p-4 ${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-100/80 border-gray-300'}`}>
