@@ -18,6 +18,17 @@ interface ChatInterfaceProps {
   isAuthenticated: boolean;
 }
 
+interface JournalEntry {
+  date: string;
+  description: string;
+  entries: {
+    account: string;
+    accountType: 'asset' | 'liability' | 'equity' | 'income' | 'expense';
+    debit: number;
+    credit: number;
+  }[];
+}
+
 interface Message {
   id: string;
   type: 'user' | 'ai';
@@ -32,6 +43,7 @@ interface Message {
     counterparty?: string;
     date: string;
   };
+  journalEntry?: JournalEntry;
 }
 
 const supportedLanguages = [
@@ -47,96 +59,370 @@ const supportedLanguages = [
   { code: 'fa', name: 'Persian', flag: '🇮🇷' },
 ];
 
-// Mock balance for demonstration
+// Accounting system with proper double-entry bookkeeping
 let currentBalance = 2513.42;
+let totalAssets = 2513.42;
+let totalLiabilities = 0;
+let totalEquity = 2513.42;
+let totalIncome = 0;
+let totalExpenses = 0;
 
-// Simple AI response function that mimics OpenAI behavior
-const generateAIResponse = async (userInput: string): Promise<{ response: string; transaction?: any }> => {
-  // Simulate API delay
+// Account structure for proper accounting
+const accounts = {
+  assets: {
+    cash: currentBalance,
+    inventory: 0,
+    equipment: 0,
+    accountsReceivable: 0
+  },
+  liabilities: {
+    accountsPayable: 0,
+    loans: 0
+  },
+  equity: {
+    capital: 2513.42,
+    retainedEarnings: 0
+  },
+  income: {
+    sales: 0,
+    fees: 0,
+    other: 0
+  },
+  expenses: {
+    rent: 0,
+    utilities: 0,
+    food: 0,
+    transportation: 0,
+    supplies: 0,
+    other: 0
+  }
+};
+
+// Proper accounting AI response function
+const generateAccountingResponse = async (userInput: string): Promise<{ response: string; transaction?: any; journalEntry?: JournalEntry }> => {
   await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
   
   const input = userInput.toLowerCase();
   
-  // Check for transaction patterns
-  const transactionPatterns = [
-    { pattern: /(?:paid|spent|gave|send|sent)\s+(?:\$)?(\d+(?:\.\d{2})?)\s+(?:to|for)\s+([a-zA-Z\s]+)/i, type: 'expense' },
-    { pattern: /([a-zA-Z\s]+)\s+(?:gave|paid|sent)\s+(?:me\s+)?(?:\$)?(\d+(?:\.\d{2})?)/i, type: 'income' },
-    { pattern: /(?:received|got|earned)\s+(?:\$)?(\d+(?:\.\d{2})?)\s+(?:from\s+)?([a-zA-Z\s]*)/i, type: 'income' },
+  // Enhanced transaction patterns with accounting logic
+  const accountingPatterns = [
+    // Expenses (Debit Expense, Credit Cash)
+    { 
+      pattern: /(?:paid|spent|bought|purchased)\s+(?:\$)?(\d+(?:\.\d{2})?)\s+(?:for|on)\s+([a-zA-Z\s]+)/i, 
+      type: 'expense',
+      accounts: ['expense', 'cash']
+    },
+    { 
+      pattern: /(?:paid|gave|sent)\s+(?:\$)?(\d+(?:\.\d{2})?)\s+(?:to|for)\s+([a-zA-Z\s]+)/i, 
+      type: 'expense',
+      accounts: ['expense', 'cash']
+    },
+    
+    // Income (Debit Cash, Credit Income)
+    { 
+      pattern: /(?:received|got|earned|collected)\s+(?:\$)?(\d+(?:\.\d{2})?)\s+(?:from\s+)?([a-zA-Z\s]*)/i, 
+      type: 'income',
+      accounts: ['cash', 'income']
+    },
+    { 
+      pattern: /([a-zA-Z\s]+)\s+(?:gave|paid|sent)\s+(?:me\s+)?(?:\$)?(\d+(?:\.\d{2})?)/i, 
+      type: 'income',
+      accounts: ['cash', 'income']
+    },
+    
+    // Loans (Debit Cash, Credit Liability for borrowing; Debit Liability, Credit Cash for repaying)
+    { 
+      pattern: /(?:borrowed|took\s+loan)\s+(?:\$)?(\d+(?:\.\d{2})?)\s+(?:from\s+)?([a-zA-Z\s]*)/i, 
+      type: 'loan_received',
+      accounts: ['cash', 'liability']
+    },
+    { 
+      pattern: /(?:repaid|paid\s+back)\s+(?:\$)?(\d+(?:\.\d{2})?)\s+(?:to\s+)?([a-zA-Z\s]*)/i, 
+      type: 'loan_repayment',
+      accounts: ['liability', 'cash']
+    },
+    
+    // Asset purchases (Debit Asset, Credit Cash)
+    { 
+      pattern: /(?:bought|purchased)\s+([a-zA-Z\s]+)\s+(?:for\s+)?(?:\$)?(\d+(?:\.\d{2})?)/i, 
+      type: 'asset_purchase',
+      accounts: ['asset', 'cash']
+    }
   ];
   
   let transaction = null;
+  let journalEntry = null;
   let aiResponse = "";
   
-  for (const { pattern, type } of transactionPatterns) {
+  // Process accounting transactions
+  for (const { pattern, type, accounts: accountTypes } of accountingPatterns) {
     const match = userInput.match(pattern);
     if (match) {
-      let amount, counterparty;
+      let amount, counterparty, description;
       
       if (type === 'expense') {
         amount = parseFloat(match[1]);
-        counterparty = match[2].trim();
-        aiResponse = `I've recorded your expense of $${amount} to ${counterparty}. `;
-      } else {
+        counterparty = match[2] ? match[2].trim() : null;
+        description = `Payment for ${counterparty || 'expense'}`;
+        
+        // Categorize expense
+        let expenseCategory = 'other';
+        const categoryKeywords = {
+          'food': ['food', 'lunch', 'dinner', 'breakfast', 'restaurant', 'meal'],
+          'rent': ['rent', 'housing'],
+          'utilities': ['electricity', 'water', 'gas', 'internet', 'phone'],
+          'transportation': ['uber', 'taxi', 'bus', 'gas', 'fuel'],
+          'supplies': ['supplies', 'office', 'stationery']
+        };
+        
+        for (const [category, keywords] of Object.entries(categoryKeywords)) {
+          if (keywords.some(keyword => input.includes(keyword))) {
+            expenseCategory = category;
+            break;
+          }
+        }
+        
+        // Update accounts using double-entry
+        accounts.expenses[expenseCategory] += amount;
+        accounts.assets.cash -= amount;
+        currentBalance = accounts.assets.cash;
+        totalExpenses += amount;
+        
+        // Create journal entry
+        journalEntry = {
+          date: new Date().toISOString().split('T')[0],
+          description: description,
+          entries: [
+            {
+              account: `${expenseCategory.charAt(0).toUpperCase() + expenseCategory.slice(1)} Expense`,
+              accountType: 'expense',
+              debit: amount,
+              credit: 0
+            },
+            {
+              account: 'Cash',
+              accountType: 'asset',
+              debit: 0,
+              credit: amount
+            }
+          ]
+        };
+        
+        aiResponse = `✅ **Expense Recorded**: $${amount} for ${counterparty || 'expense'}\n\n` +
+                    `📊 **Journal Entry**:\n` +
+                    `• Debit: ${expenseCategory.charAt(0).toUpperCase() + expenseCategory.slice(1)} Expense $${amount}\n` +
+                    `• Credit: Cash $${amount}\n\n` +
+                    `💰 **Updated Balance**: $${currentBalance.toFixed(2)}\n` +
+                    `📈 **Total Expenses**: $${totalExpenses.toFixed(2)}`;
+        
+      } else if (type === 'income') {
         if (match[1] && isNaN(parseFloat(match[1]))) {
-          // Pattern: "John gave me $50"
           counterparty = match[1].trim();
           amount = parseFloat(match[2]);
         } else {
-          // Pattern: "received $50 from John"
           amount = parseFloat(match[1]);
           counterparty = match[2] ? match[2].trim() : null;
         }
-        aiResponse = `Great! I've recorded your income of $${amount}${counterparty ? ` from ${counterparty}` : ''}. `;
+        description = `Payment received${counterparty ? ` from ${counterparty}` : ''}`;
+        
+        // Update accounts using double-entry
+        accounts.assets.cash += amount;
+        accounts.income.other += amount;
+        currentBalance = accounts.assets.cash;
+        totalIncome += amount;
+        
+        // Create journal entry
+        journalEntry = {
+          date: new Date().toISOString().split('T')[0],
+          description: description,
+          entries: [
+            {
+              account: 'Cash',
+              accountType: 'asset',
+              debit: amount,
+              credit: 0
+            },
+            {
+              account: 'Income',
+              accountType: 'income',
+              debit: 0,
+              credit: amount
+            }
+          ]
+        };
+        
+        aiResponse = `✅ **Income Recorded**: $${amount}${counterparty ? ` from ${counterparty}` : ''}\n\n` +
+                    `📊 **Journal Entry**:\n` +
+                    `• Debit: Cash $${amount}\n` +
+                    `• Credit: Income $${amount}\n\n` +
+                    `💰 **Updated Balance**: $${currentBalance.toFixed(2)}\n` +
+                    `📈 **Total Income**: $${totalIncome.toFixed(2)}`;
+                    
+      } else if (type === 'loan_received') {
+        amount = parseFloat(match[1]);
+        counterparty = match[2] ? match[2].trim() : 'Bank';
+        description = `Loan received from ${counterparty}`;
+        
+        // Update accounts using double-entry
+        accounts.assets.cash += amount;
+        accounts.liabilities.loans += amount;
+        currentBalance = accounts.assets.cash;
+        totalLiabilities += amount;
+        
+        journalEntry = {
+          date: new Date().toISOString().split('T')[0],
+          description: description,
+          entries: [
+            {
+              account: 'Cash',
+              accountType: 'asset',
+              debit: amount,
+              credit: 0
+            },
+            {
+              account: 'Loan Payable',
+              accountType: 'liability',
+              debit: 0,
+              credit: amount
+            }
+          ]
+        };
+        
+        aiResponse = `✅ **Loan Received**: $${amount} from ${counterparty}\n\n` +
+                    `📊 **Journal Entry**:\n` +
+                    `• Debit: Cash $${amount}\n` +
+                    `• Credit: Loan Payable $${amount}\n\n` +
+                    `💰 **Cash Balance**: $${currentBalance.toFixed(2)}\n` +
+                    `⚠️ **Total Liabilities**: $${totalLiabilities.toFixed(2)}`;
+                    
+      } else if (type === 'loan_repayment') {
+        amount = parseFloat(match[1]);
+        counterparty = match[2] ? match[2].trim() : 'Bank';
+        description = `Loan repayment to ${counterparty}`;
+        
+        // Update accounts using double-entry
+        accounts.assets.cash -= amount;
+        accounts.liabilities.loans -= amount;
+        currentBalance = accounts.assets.cash;
+        totalLiabilities -= amount;
+        
+        journalEntry = {
+          date: new Date().toISOString().split('T')[0],
+          description: description,
+          entries: [
+            {
+              account: 'Loan Payable',
+              accountType: 'liability',
+              debit: amount,
+              credit: 0
+            },
+            {
+              account: 'Cash',
+              accountType: 'asset',
+              debit: 0,
+              credit: amount
+            }
+          ]
+        };
+        
+        aiResponse = `✅ **Loan Repayment**: $${amount} to ${counterparty}\n\n` +
+                    `📊 **Journal Entry**:\n` +
+                    `• Debit: Loan Payable $${amount}\n` +
+                    `• Credit: Cash $${amount}\n\n` +
+                    `💰 **Cash Balance**: $${currentBalance.toFixed(2)}\n` +
+                    `📉 **Remaining Liabilities**: $${Math.max(0, totalLiabilities).toFixed(2)}`;
       }
       
       transaction = {
         id: Date.now().toString(),
-        type: type as 'income' | 'expense',
+        type: type.includes('income') || type === 'loan_received' ? 'income' : 'expense',
         amount,
         counterparty: counterparty || null,
-        description: type === 'income' 
-          ? `Payment${counterparty ? ` from ${counterparty}` : ''}`
-          : `Payment${counterparty ? ` to ${counterparty}` : ''}`,
+        description,
         date: new Date().toISOString().split('T')[0]
       };
-      
-      // Update balance
-      if (type === 'income') {
-        currentBalance += amount;
-        aiResponse += `Your new balance is $${currentBalance.toFixed(2)}.`;
-      } else {
-        currentBalance -= amount;
-        aiResponse += `Your new balance is $${currentBalance.toFixed(2)}.`;
-      }
       
       break;
     }
   }
   
-  // If no transaction detected, provide general financial advice
+  // Handle financial reports and queries
   if (!transaction) {
-    if (input.includes('balance')) {
-      aiResponse = `Your current balance is $${currentBalance.toFixed(2)}. Is there anything specific you'd like to know about your finances?`;
-    } else if (input.includes('budget') || input.includes('budgeting')) {
-      aiResponse = "Budgeting is crucial for financial health! I recommend the 50/30/20 rule: 50% for needs, 30% for wants, and 20% for savings and debt repayment. Would you like me to help you create a personalized budget?";
-    } else if (input.includes('save') || input.includes('saving')) {
-      aiResponse = "Great question about saving! Start with an emergency fund of 3-6 months of expenses. Then consider high-yield savings accounts or investment options based on your goals. What's your savings goal?";
-    } else if (input.includes('invest') || input.includes('investment')) {
-      aiResponse = "Investment is key to building wealth! Consider diversified index funds, ETFs, or consult a financial advisor. Remember: invest only what you can afford to lose, and think long-term. What's your investment timeline?";
-    } else if (input.includes('debt')) {
-      aiResponse = "Managing debt is important! Consider the debt avalanche method (pay highest interest first) or debt snowball (pay smallest balance first). Would you like help creating a debt payoff strategy?";
+    if (input.includes('balance sheet') || input.includes('financial position')) {
+      const totalAssetsCalc = accounts.assets.cash + accounts.assets.inventory + accounts.assets.equipment;
+      const totalLiabilitiesCalc = accounts.liabilities.accountsPayable + accounts.liabilities.loans;
+      const totalEquityCalc = accounts.equity.capital + accounts.equity.retainedEarnings;
+      
+      aiResponse = `📊 **BALANCE SHEET** (as of ${new Date().toLocaleDateString()})\n\n` +
+                  `**ASSETS**\n` +
+                  `• Cash: $${accounts.assets.cash.toFixed(2)}\n` +
+                  `• Inventory: $${accounts.assets.inventory.toFixed(2)}\n` +
+                  `• Equipment: $${accounts.assets.equipment.toFixed(2)}\n` +
+                  `**Total Assets: $${totalAssetsCalc.toFixed(2)}**\n\n` +
+                  `**LIABILITIES**\n` +
+                  `• Accounts Payable: $${accounts.liabilities.accountsPayable.toFixed(2)}\n` +
+                  `• Loans: $${accounts.liabilities.loans.toFixed(2)}\n` +
+                  `**Total Liabilities: $${totalLiabilitiesCalc.toFixed(2)}**\n\n` +
+                  `**EQUITY**\n` +
+                  `• Capital: $${accounts.equity.capital.toFixed(2)}\n` +
+                  `• Retained Earnings: $${accounts.equity.retainedEarnings.toFixed(2)}\n` +
+                  `**Total Equity: $${totalEquityCalc.toFixed(2)}**\n\n` +
+                  `✅ **Balance Check**: Assets (${totalAssetsCalc.toFixed(2)}) = Liabilities + Equity (${(totalLiabilitiesCalc + totalEquityCalc).toFixed(2)})`;
+                  
+    } else if (input.includes('income statement') || input.includes('profit') || input.includes('loss')) {
+      const netIncome = totalIncome - totalExpenses;
+      
+      aiResponse = `📈 **INCOME STATEMENT**\n\n` +
+                  `**INCOME**\n` +
+                  `• Sales/Fees: $${accounts.income.sales.toFixed(2)}\n` +
+                  `• Other Income: $${accounts.income.other.toFixed(2)}\n` +
+                  `**Total Income: $${totalIncome.toFixed(2)}**\n\n` +
+                  `**EXPENSES**\n` +
+                  `• Rent: $${accounts.expenses.rent.toFixed(2)}\n` +
+                  `• Food: $${accounts.expenses.food.toFixed(2)}\n` +
+                  `• Utilities: $${accounts.expenses.utilities.toFixed(2)}\n` +
+                  `• Transportation: $${accounts.expenses.transportation.toFixed(2)}\n` +
+                  `• Other: $${accounts.expenses.other.toFixed(2)}\n` +
+                  `**Total Expenses: $${totalExpenses.toFixed(2)}**\n\n` +
+                  `${netIncome >= 0 ? '💚' : '🔴'} **Net ${netIncome >= 0 ? 'Profit' : 'Loss'}: $${Math.abs(netIncome).toFixed(2)}**`;
+                  
+    } else if (input.includes('trial balance')) {
+      const totalDebits = totalExpenses + accounts.assets.cash + accounts.assets.inventory + accounts.assets.equipment;
+      const totalCredits = totalIncome + accounts.liabilities.accountsPayable + accounts.liabilities.loans + accounts.equity.capital;
+      
+      aiResponse = `⚖️ **TRIAL BALANCE**\n\n` +
+                  `**DEBIT BALANCES**\n` +
+                  `• Cash: $${accounts.assets.cash.toFixed(2)}\n` +
+                  `• Expenses: $${totalExpenses.toFixed(2)}\n` +
+                  `**Total Debits: $${(accounts.assets.cash + totalExpenses).toFixed(2)}**\n\n` +
+                  `**CREDIT BALANCES**\n` +
+                  `• Income: $${totalIncome.toFixed(2)}\n` +
+                  `• Liabilities: $${accounts.liabilities.loans.toFixed(2)}\n` +
+                  `• Capital: $${accounts.equity.capital.toFixed(2)}\n` +
+                  `**Total Credits: $${(totalIncome + accounts.liabilities.loans + accounts.equity.capital).toFixed(2)}**\n\n` +
+                  `${Math.abs((accounts.assets.cash + totalExpenses) - (totalIncome + accounts.liabilities.loans + accounts.equity.capital)) < 0.01 ? '✅' : '❌'} **Balance Check**: ${Math.abs((accounts.assets.cash + totalExpenses) - (totalIncome + accounts.liabilities.loans + accounts.equity.capital)) < 0.01 ? 'Balanced' : 'Out of Balance'}`;
+                  
+    } else if (input.includes('balance') || input.includes('cash')) {
+      aiResponse = `💰 **Current Cash Balance**: $${currentBalance.toFixed(2)}\n\n` +
+                  `📊 **Quick Summary**:\n` +
+                  `• Total Income: $${totalIncome.toFixed(2)}\n` +
+                  `• Total Expenses: $${totalExpenses.toFixed(2)}\n` +
+                  `• Net: $${(totalIncome - totalExpenses).toFixed(2)}\n` +
+                  `• Liabilities: $${totalLiabilities.toFixed(2)}`;
+                  
     } else {
+      // General financial guidance with accounting principles
       const responses = [
-        "I'm here to help with your finances! You can ask about budgeting, investments, savings, or tell me about your transactions.",
-        "Financial planning is important! What specific area would you like to focus on - budgeting, saving, investing, or tracking expenses?",
-        "I can help you manage your money better! Try asking about your balance, budget planning, or tell me about recent transactions.",
-        "Managing finances can be simple with the right approach! What financial goal are you working towards?",
+        "I can help you track transactions using proper accounting principles! Try telling me about payments, income, loans, or ask for financial reports like 'balance sheet' or 'income statement'.",
+        "Let's keep your books balanced! Tell me about any financial transactions and I'll create proper journal entries following double-entry bookkeeping.",
+        "I use professional accounting methods to track your finances. You can ask about expenses, income, loans, or request reports like trial balance or profit & loss statement.",
+        "Ready to help with your accounting! Every transaction follows proper double-entry rules. What financial activity would you like to record?"
       ];
       aiResponse = responses[Math.floor(Math.random() * responses.length)];
     }
   }
   
-  return { response: aiResponse, transaction };
+  return { response: aiResponse, transaction, journalEntry };
 };
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuthenticated }) => {
@@ -197,7 +483,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
       setMessages([{
         id: '1',
         type: 'ai',
-        content: `Welcome to FinanceAI! 👋 I'm your personal financial assistant. You can:\n\n• Tell me about transactions: "I spent $25 on lunch"\n• Ask about your balance: "What's my current balance?"\n• Request financial advice: "How should I budget my income?"\n• Get investment tips: "What are some good investment options?"\n\nI speak multiple languages! Try switching languages or just speak naturally. How can I help you today?`,
+        content: `Welcome to FinanceAI! 👋 I'm your professional accounting assistant using **double-entry bookkeeping**.\n\n✅ **What I can help you with:**\n• **Record Transactions**: "I paid $25 for lunch" or "Received $100 from client"\n• **Generate Reports**: "Show balance sheet" or "Income statement"\n• **Track Loans**: "Borrowed $500 from bank" or "Repaid $200"\n• **Account Analysis**: "Trial balance" or "Cash balance"\n\n🔍 **Accounting Features:**\n• Proper journal entries with debits/credits\n• Real-time balance sheet updates\n• Income statement tracking\n• Professional financial reports\n\nTell me about any financial transaction and I'll handle the accounting!`,
         timestamp: new Date(),
       }]);
     }
@@ -222,12 +508,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
 
   const handleThumbsUp = (messageId: string) => {
     console.log('Thumbs up for message:', messageId);
-    // Here you would typically send feedback to your backend
   };
 
   const handleThumbsDown = (messageId: string) => {
     console.log('Thumbs down for message:', messageId);
-    // Here you would typically send feedback to your backend
   };
 
   const handleVoiceToggle = () => {
@@ -271,9 +555,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
     setInputValue('');
     setIsLoading(true);
     
-    // Get AI response - only for authenticated users
+    // Get AI response with proper accounting logic - only for authenticated users
     try {
-      const { response: aiResponse, transaction } = await generateAIResponse(inputValue);
+      const { response: aiResponse, transaction, journalEntry } = await generateAccountingResponse(inputValue);
       
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -281,10 +565,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
         content: aiResponse,
         timestamp: new Date(),
         transaction: transaction,
+        journalEntry: journalEntry,
       };
       
       console.log('Adding AI response:', aiMessage.content);
       if (transaction) console.log('Transaction detected:', transaction);
+      if (journalEntry) console.log('Journal entry created:', journalEntry);
       
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
@@ -292,7 +578,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: "I'm sorry, I encountered an error processing your request. Please try again.",
+        content: "I'm sorry, I encountered an error processing your financial request. Please try again.",
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -490,7 +776,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
             }`}>
               <div className="flex items-center gap-2">
                 <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                <span className="text-sm">FinanceAI is thinking...</span>
+                <span className="text-sm">FinanceAI is processing your transaction...</span>
               </div>
             </Card>
           </div>
@@ -542,7 +828,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
                     selectedLanguage === 'ur' ? 'اپنا مالی سوال یہاں لکھیں...' :
                     selectedLanguage === 'hi' ? 'अपना वित्तीय प्रश्न यहाँ लिखें...' :
                     selectedLanguage === 'ar' ? 'اكتب سؤالك المالي هنا...' :
-                    'Type your financial question here...'
+                    'Tell me about a transaction or ask for financial reports...'
                   }
                   className={`pr-12 ${
                     isDarkMode 
