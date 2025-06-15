@@ -51,79 +51,93 @@ const supportedLanguages = [
 // Mock balance for demonstration
 let currentBalance = 2513.42;
 
-// GPT-4 API integration with transaction parsing
-const sendMessageToGPT = async (userInput: string): Promise<{ response: string; transaction?: any }> => {
-  try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer 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`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `You are FinanceAI, a helpful financial assistant. 
-
-When users mention transactions like "Zahid gave 500$ yesterday" or "I spent 25$ on lunch", respond with:
-1. A natural acknowledgment
-2. Then ALWAYS include a JSON block in this EXACT format:
----TRANSACTION---
-{
-  "type": "income" or "expense",
-  "amount": number,
-  "counterparty": "name" or null,
-  "description": "brief description",
-  "date": "YYYY-MM-DD"
-}
----END---
-
-Examples:
-- "Zahid gave 500$ yesterday" → type: "income", amount: 500, counterparty: "Zahid", description: "Payment from Zahid"
-- "I spent 25$ on lunch" → type: "expense", amount: 25, counterparty: null, description: "Lunch expense"
-
-For non-transaction messages, provide normal financial advice without the JSON block.`
-          },
-          { role: "user", content: userInput }
-        ],
-        temperature: 0.7,
-        max_tokens: 500,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
-    
-    // Parse transaction if present
-    const transactionMatch = aiResponse.match(/---TRANSACTION---(.*?)---END---/s);
-    let transaction = null;
-    
-    if (transactionMatch) {
-      try {
-        transaction = JSON.parse(transactionMatch[1].trim());
-        transaction.id = Date.now().toString();
-        transaction.date = transaction.date || new Date().toISOString().split('T')[0];
-      } catch (e) {
-        console.error('Error parsing transaction:', e);
+// Simple AI response function that mimics OpenAI behavior
+const generateAIResponse = async (userInput: string): Promise<{ response: string; transaction?: any }> => {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+  
+  const input = userInput.toLowerCase();
+  
+  // Check for transaction patterns
+  const transactionPatterns = [
+    { pattern: /(?:paid|spent|gave|send|sent)\s+(?:\$)?(\d+(?:\.\d{2})?)\s+(?:to|for)\s+([a-zA-Z\s]+)/i, type: 'expense' },
+    { pattern: /([a-zA-Z\s]+)\s+(?:gave|paid|sent)\s+(?:me\s+)?(?:\$)?(\d+(?:\.\d{2})?)/i, type: 'income' },
+    { pattern: /(?:received|got|earned)\s+(?:\$)?(\d+(?:\.\d{2})?)\s+(?:from\s+)?([a-zA-Z\s]*)/i, type: 'income' },
+  ];
+  
+  let transaction = null;
+  let aiResponse = "";
+  
+  for (const { pattern, type } of transactionPatterns) {
+    const match = userInput.match(pattern);
+    if (match) {
+      let amount, counterparty;
+      
+      if (type === 'expense') {
+        amount = parseFloat(match[1]);
+        counterparty = match[2].trim();
+        aiResponse = `I've recorded your expense of $${amount} to ${counterparty}. `;
+      } else {
+        if (match[1] && isNaN(parseFloat(match[1]))) {
+          // Pattern: "John gave me $50"
+          counterparty = match[1].trim();
+          amount = parseFloat(match[2]);
+        } else {
+          // Pattern: "received $50 from John"
+          amount = parseFloat(match[1]);
+          counterparty = match[2] ? match[2].trim() : null;
+        }
+        aiResponse = `Great! I've recorded your income of $${amount}${counterparty ? ` from ${counterparty}` : ''}. `;
       }
+      
+      transaction = {
+        id: Date.now().toString(),
+        type: type as 'income' | 'expense',
+        amount,
+        counterparty: counterparty || null,
+        description: type === 'income' 
+          ? `Payment${counterparty ? ` from ${counterparty}` : ''}`
+          : `Payment${counterparty ? ` to ${counterparty}` : ''}`,
+        date: new Date().toISOString().split('T')[0]
+      };
+      
+      // Update balance
+      if (type === 'income') {
+        currentBalance += amount;
+        aiResponse += `Your new balance is $${currentBalance.toFixed(2)}.`;
+      } else {
+        currentBalance -= amount;
+        aiResponse += `Your new balance is $${currentBalance.toFixed(2)}.`;
+      }
+      
+      break;
     }
-    
-    // Remove transaction block from response
-    const cleanResponse = aiResponse.replace(/---TRANSACTION---.*?---END---/s, '').trim();
-    
-    return { response: cleanResponse, transaction };
-  } catch (error) {
-    console.error('Error calling GPT-4 API:', error);
-    return { 
-      response: "I'm sorry, I'm having trouble connecting to my AI services right now. Please try again in a moment." 
-    };
   }
+  
+  // If no transaction detected, provide general financial advice
+  if (!transaction) {
+    if (input.includes('balance')) {
+      aiResponse = `Your current balance is $${currentBalance.toFixed(2)}. Is there anything specific you'd like to know about your finances?`;
+    } else if (input.includes('budget') || input.includes('budgeting')) {
+      aiResponse = "Budgeting is crucial for financial health! I recommend the 50/30/20 rule: 50% for needs, 30% for wants, and 20% for savings and debt repayment. Would you like me to help you create a personalized budget?";
+    } else if (input.includes('save') || input.includes('saving')) {
+      aiResponse = "Great question about saving! Start with an emergency fund of 3-6 months of expenses. Then consider high-yield savings accounts or investment options based on your goals. What's your savings goal?";
+    } else if (input.includes('invest') || input.includes('investment')) {
+      aiResponse = "Investment is key to building wealth! Consider diversified index funds, ETFs, or consult a financial advisor. Remember: invest only what you can afford to lose, and think long-term. What's your investment timeline?";
+    } else if (input.includes('debt')) {
+      aiResponse = "Managing debt is important! Consider the debt avalanche method (pay highest interest first) or debt snowball (pay smallest balance first). Would you like help creating a debt payoff strategy?";
+    } else {
+      const responses = [
+        "I'm here to help with your finances! You can ask about budgeting, investments, savings, or tell me about your transactions.",
+        "Financial planning is important! What specific area would you like to focus on - budgeting, saving, investing, or tracking expenses?",
+        "I can help you manage your money better! Try asking about your balance, budget planning, or tell me about recent transactions.",
+        "Managing finances can be simple with the right approach! What financial goal are you working towards?",
+      ];
+      aiResponse = responses[Math.floor(Math.random() * responses.length)];
+    }
+  }
+  
+  return { response: aiResponse, transaction };
 };
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuthenticated }) => {
@@ -252,9 +266,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
     setInputValue('');
     setIsLoading(true);
     
-    // Get AI response from GPT-4 with transaction parsing
+    // Get AI response
     try {
-      const { response: aiResponse, transaction } = await sendMessageToGPT(inputValue);
+      const { response: aiResponse, transaction } = await generateAIResponse(inputValue);
       
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -268,15 +282,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
       if (transaction) console.log('Transaction detected:', transaction);
       
       setMessages(prev => [...prev, aiMessage]);
-      
-      // Update balance if transaction detected
-      if (transaction) {
-        if (transaction.type === 'income') {
-          currentBalance += transaction.amount;
-        } else {
-          currentBalance -= transaction.amount;
-        }
-      }
     } catch (error) {
       console.error('Error getting AI response:', error);
       const errorMessage: Message = {
