@@ -18,6 +18,7 @@ interface TransactionDisplayProps {
   transaction: Transaction;
   previousBalance: number;
   newBalance: number;
+  currentBalance: number;
   onClose?: () => void;
 }
 
@@ -26,6 +27,7 @@ export const TransactionDisplay: React.FC<TransactionDisplayProps> = ({
   transaction,
   previousBalance,
   newBalance,
+  currentBalance,
   onClose
 }) => {
   const isIncome = transaction.type === 'income';

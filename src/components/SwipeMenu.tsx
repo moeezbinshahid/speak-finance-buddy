@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Heart, Instagram, X, Microphone, HelpCircle, Info, LogOut } from 'lucide-react';
+import { Heart, Instagram, X, Mic, HelpCircle, Info, LogOut } from 'lucide-react';
 import { 
   Drawer,
   DrawerContent,
@@ -30,7 +29,7 @@ const supportItems = [
 ];
 
 const permissionItems = [
-  { name: 'Microphone', icon: Microphone, url: '#' },
+  { name: 'Microphone', icon: Mic, url: '#' },
 ];
 
 export const SwipeMenu: React.FC<SwipeMenuProps> = ({ 

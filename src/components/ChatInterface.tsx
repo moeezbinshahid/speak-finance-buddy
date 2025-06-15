@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -461,6 +462,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
               <div className="mt-2 flex justify-start">
                 <TransactionDisplay 
                   transaction={message.transaction}
+                  previousBalance={currentBalance - (message.transaction.type === 'income' ? message.transaction.amount : -message.transaction.amount)}
+                  newBalance={currentBalance}
                   currentBalance={currentBalance}
                   isDarkMode={isDarkMode}
                 />
