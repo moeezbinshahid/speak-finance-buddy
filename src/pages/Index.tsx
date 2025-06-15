@@ -26,6 +26,12 @@ const Index = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setSwipeMenuOpen(false);
+    // You can add more logout logic here like clearing user data
+  };
+
   if (isLoading) {
     return <Preloader />;
   }
@@ -52,13 +58,15 @@ const Index = () => {
           />
           
           <main className="flex-1 flex flex-col relative">
-            {/* Always show FinanceAI title */}
-            <div className="flex justify-center pt-8 mb-4">
-              <h1 className={`text-4xl md:text-5xl font-kusanagi font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                FinanceAI
-                <span className="text-blue-500">.</span>
-              </h1>
-            </div>
+            {/* Only show FinanceAI title for authenticated users */}
+            {isAuthenticated && (
+              <div className="flex justify-center pt-8 mb-4">
+                <h1 className={`text-4xl md:text-5xl font-kusanagi font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  FinanceAI
+                  <span className="text-blue-500">.</span>
+                </h1>
+              </div>
+            )}
             
             <ChatInterface 
               isDarkMode={isDarkMode}
@@ -90,6 +98,8 @@ const Index = () => {
         isDarkMode={isDarkMode}
         isOpen={swipeMenuOpen}
         onOpenChange={setSwipeMenuOpen}
+        isAuthenticated={isAuthenticated}
+        onLogout={handleLogout}
       />
 
       {showAuthModal && (

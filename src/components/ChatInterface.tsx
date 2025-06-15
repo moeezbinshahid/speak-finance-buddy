@@ -57,10 +57,10 @@ const sendMessageToGPT = async (userInput: string): Promise<{ response: string; 
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        Authorization: `Bearer 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`,
       },
       body: JSON.stringify({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -183,7 +183,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
       setMessages([{
         id: '1',
         type: 'ai',
-        content: `Welcome to FinanceAI! 👋 I'm your personal financial assistant powered by GPT-4. You can:\n\n• Tell me about transactions: "I spent $25 on lunch"\n• Ask about your balance: "What's my current balance?"\n• Request financial advice: "How should I budget my income?"\n• Get investment tips: "What are some good investment options?"\n\nI speak multiple languages! Try switching languages or just speak naturally. How can I help you today?`,
+        content: `Welcome to FinanceAI! 👋 I'm your personal financial assistant. You can:\n\n• Tell me about transactions: "I spent $25 on lunch"\n• Ask about your balance: "What's my current balance?"\n• Request financial advice: "How should I budget my income?"\n• Get investment tips: "What are some good investment options?"\n\nI speak multiple languages! Try switching languages or just speak naturally. How can I help you today?`,
         timestamp: new Date(),
       }]);
     }
@@ -332,7 +332,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
         </div>
 
         <p className={`text-center text-lg mb-12 max-w-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-          Your intelligent financial assistant powered by GPT-4, supporting multiple languages and voice commands.
+          Your intelligent financial assistant, supporting multiple languages and voice commands.
         </p>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
@@ -404,56 +404,68 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isDarkMode, isAuth
         onScroll={handleScroll}
       >
         {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <Card className={`max-w-xs md:max-w-md p-3 ${
-              message.type === 'user'
-                ? isDarkMode 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-blue-600 text-white'
-                : isDarkMode
-                  ? 'bg-gray-800/50 border-gray-700 text-white'
-                  : 'bg-white/80 border-gray-200 text-gray-900'
-            }`}>
-              <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                {message.content}
-              </div>
-              <div className="flex items-center justify-between mt-3 text-xs opacity-70">
-                <div className="flex items-center gap-2">
-                  <span>{message.timestamp.toLocaleTimeString()}</span>
-                  {message.language && (
-                    <Badge variant="secondary" className="text-xs">
-                      {supportedLanguages.find(l => l.code === message.language)?.flag} {message.language.toUpperCase()}
-                    </Badge>
+          <div key={message.id}>
+            <div
+              className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <Card className={`max-w-xs md:max-w-md p-3 ${
+                message.type === 'user'
+                  ? isDarkMode 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-blue-600 text-white'
+                  : isDarkMode
+                    ? 'bg-gray-800/50 border-gray-700 text-white'
+                    : 'bg-white/80 border-gray-200 text-gray-900'
+              }`}>
+                <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                  {message.content}
+                </div>
+                <div className="flex items-center justify-between mt-3 text-xs opacity-70">
+                  <div className="flex items-center gap-2">
+                    <span>{message.timestamp.toLocaleTimeString()}</span>
+                    {message.language && (
+                      <Badge variant="secondary" className="text-xs">
+                        {supportedLanguages.find(l => l.code === message.language)?.flag} {message.language.toUpperCase()}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {message.type === 'ai' && (
+                    <div className="flex items-center gap-1 ml-2">
+                      <ThumbsUp 
+                        width={16} 
+                        height={16}
+                        stroke="currentColor"
+                        onClick={() => handleThumbsUp(message.id)}
+                      />
+                      <ThumbsDown 
+                        width={16} 
+                        height={16}
+                        stroke="currentColor"
+                        onClick={() => handleThumbsDown(message.id)}
+                      />
+                      <Copy 
+                        width={16} 
+                        height={16}
+                        stroke="currentColor"
+                        onClick={() => handleCopyMessage(message.content)}
+                      />
+                    </div>
                   )}
                 </div>
-                
-                {message.type === 'ai' && (
-                  <div className="flex items-center gap-1 ml-2">
-                    <ThumbsUp 
-                      width={16} 
-                      height={16}
-                      stroke="currentColor"
-                      onClick={() => handleThumbsUp(message.id)}
-                    />
-                    <ThumbsDown 
-                      width={16} 
-                      height={16}
-                      stroke="currentColor"
-                      onClick={() => handleThumbsDown(message.id)}
-                    />
-                    <Copy 
-                      width={16} 
-                      height={16}
-                      stroke="currentColor"
-                      onClick={() => handleCopyMessage(message.content)}
-                    />
-                  </div>
-                )}
+              </Card>
+            </div>
+            
+            {/* Transaction display */}
+            {message.transaction && (
+              <div className="mt-2 flex justify-start">
+                <TransactionDisplay 
+                  transaction={message.transaction}
+                  currentBalance={currentBalance}
+                  isDarkMode={isDarkMode}
+                />
               </div>
-            </Card>
+            )}
           </div>
         ))}
         
